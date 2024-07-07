@@ -52,7 +52,8 @@ module ActionView
     end
 
     def default_key(controller)
-      name = controller.class.to_s.demodulize.delete_suffix("Controller").singularize.underscore
+      name = controller.class.to_s.demodulize.delete_suffix("Controller").underscore
+      name = controller.action_name == 'index' ? name.pluralize : name.singularize
       controller.instance_variable_get("@#{name}")
     end
 
