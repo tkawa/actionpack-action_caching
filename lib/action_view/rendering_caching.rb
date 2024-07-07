@@ -1,5 +1,7 @@
 module ActionView
   module RenderingCaching
+    class MissingCacheKeyError < StandardError; end
+
     private
 
     def render_with_layout(view, template, path, locals)
@@ -22,8 +24,10 @@ module ActionView
       controller = view.controller
       rendering_cache_options = controller.instance_variable_get(:@_rendering_cache_options)
       if controller.respond_to?(:perform_caching) && controller.perform_caching && rendering_cache_options && rendering_cache_options[:enabled]
-        key_object = expand_key_object(controller, rendering_cache_options[:key])
-        fragment_name = fragment_name_with_digest(key_object, view, template, layout)
+        key = rendering_cache_options.include?(:key) ? expand_key(controller, rendering_cache_options[:key]) : default_key(controller)
+        raise MissingCacheKeyError, "The cache key cannot be nil." if key.nil?
+
+        fragment_name = fragment_name_with_digest(key, view, template, layout)
         fragment_for(fragment_name, controller, &block)
       else
         yield
@@ -47,22 +51,27 @@ module ActionView
       [ :rendering, digest_path, layout_path, name ].compact
     end
 
-    def expand_key_object(controller, object)
-      object = object.to_proc if object.respond_to?(:to_proc)
+    def default_key(controller)
+      name = controller.class.to_s.demodulize.delete_suffix("Controller").singularize.underscore
+      controller.instance_variable_get("@#{name}")
+    end
 
-      if object.is_a?(Proc)
-        case object.arity
+    def expand_key(controller, key)
+      key = key.to_proc if key.respond_to?(:to_proc)
+
+      if key.is_a?(Proc)
+        case key.arity
         when -2, -1, 1
-          controller.instance_exec(controller, &object)
+          controller.instance_exec(controller, &key)
         when 0
-          controller.instance_exec(&object)
+          controller.instance_exec(&key)
         else
-          raise ArgumentError, "Invalid proc arity of #{object.arity} - proc options should have an arity of 0 or 1"
+          raise ArgumentError, "Invalid proc arity of #{key.arity} - proc options should have an arity of 0 or 1"
         end
-      elsif object.respond_to?(:call)
-        object.call(controller)
+      elsif key.respond_to?(:call)
+        key.call(controller)
       else
-        object
+        key
       end
     end
   end
