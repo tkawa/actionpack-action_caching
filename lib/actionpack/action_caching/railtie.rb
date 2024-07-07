@@ -7,6 +7,10 @@ module ActionPack
         ActiveSupport.on_load(:action_controller) do
           require "action_controller/action_caching"
         end
+        ActiveSupport.on_load(:action_view) do
+          require "action_view/rendering_caching"
+          ActionView::TemplateRenderer.send :prepend, ActionView::RenderingCaching
+        end
       end
     end
   end

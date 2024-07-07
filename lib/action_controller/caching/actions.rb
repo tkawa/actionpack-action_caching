@@ -121,7 +121,7 @@ module ActionController
           options = actions.extract_options!
           options[:layout] = true unless options.key?(:layout)
           filter_options = options.extract!(:if, :unless).merge(only: actions)
-          cache_options  = options.extract!(:layout, :cache_path, :key_object).merge(enabled: true, store_options: options)
+          cache_options  = options.extract!(:layout, :cache_path, :key).merge(enabled: true, store_options: options)
 
           before_action(filter_options) do |controller|
             controller.instance_variable_set(:@_rendering_cache_options, cache_options)
