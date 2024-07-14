@@ -27,8 +27,9 @@ module ActionView
         cache_key = rendering_cache_options.key?(:cache_key) ? expand_cache_key(controller, rendering_cache_options[:cache_key]) : default_cache_key(controller)
         raise MissingCacheKeyError, "The cache key cannot be nil." if cache_key.nil?
 
-        fragment_name = fragment_name_with_digest(cache_key, view, template, layout)
-        fragment_for(fragment_name, controller, &block)
+        fragment_name = fragment_name(controller)
+        fragment_version = fragment_version_with_digest(cache_key, view, template, layout)
+        fragment_for(fragment_name, controller, version: fragment_version, &block)
       else
         yield
       end
@@ -45,10 +46,16 @@ module ActionView
       end
     end
 
-    def fragment_name_with_digest(name, view, template, layout)
+    def fragment_name(controller)
+      name = controller.url_for.split("://").last
+      [ :rendering, name ].compact
+    end
+
+    def fragment_version_with_digest(name, view, template, layout)
       digest_path = view.digest_path_from_template(template)
       layout_path = view.digest_path_from_template(layout) if layout
-      [ :rendering, digest_path, layout_path, name ].compact
+      cache_key_with_version = name.cache_key_with_version if name.respond_to?(:cache_key_with_version)
+      [ digest_path, layout_path, cache_key_with_version ].compact
     end
 
     def default_cache_key(controller)
