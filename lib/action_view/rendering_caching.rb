@@ -42,7 +42,11 @@ module ActionView
       else
         # @view_renderer.cache_hits[@current_template&.virtual_path] = :miss if defined?(@view_renderer)
         content = yield
-        controller.write_fragment(name, content, options)
+        if controller.caching_allowed?
+          controller.write_fragment(name, content, options)
+        else
+          content
+        end
       end
     end
 
