@@ -1,4 +1,5 @@
 require "action_controller/caching/actions"
+require "action_controller/cacheable_request_forgery_protection"
 
 module ActionController
   module Caching
@@ -13,3 +14,4 @@ module ActionController
 end
 
 ActionController::Base.send(:include, ActionController::Caching::Actions)
+ActionController::Base.send(:include, ActionController::CacheableRequestForgeryProtection)

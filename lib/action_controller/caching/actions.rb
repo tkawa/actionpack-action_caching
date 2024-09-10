@@ -119,12 +119,15 @@ module ActionController
         def caches_rendering(*actions)
           return unless cache_configured?
           options = actions.extract_options!
-          options[:layout] = true unless options.key?(:layout)
+          include_layout = options[:layout] = true unless options.key?(:layout)
           filter_options = options.extract!(:if, :unless).merge(only: actions)
           cache_options  = options.extract!(:layout, :cache_path, :cache_key).merge(enabled: true, store_options: options)
 
           before_action(filter_options) do |controller|
             controller.instance_variable_set(:@_rendering_cache_options, cache_options)
+          end
+          if include_layout
+            before_action :disable_session, filter_options
           end
         end
       end
@@ -155,6 +158,16 @@ module ActionController
         else
           expire_fragment(ActionCachePath.new(self, options, false).path)
         end
+      end
+
+      def disable_session
+        # ProtectionMethods::NullSession#handle_unverified_request を参考にした
+        # https://github.com/rails/rails/blob/v7.2.1/actionpack/lib/action_controller/metal/request_forgery_protection.rb#L259
+        # TODO: session, cookie にアクセスすると例外にすべきかもしれない
+        request.session = ActionController::RequestForgeryProtection::ProtectionMethods::NullSession::NullSessionHash.new(request)
+        request.flash = nil
+        request.session_options = { skip: true }
+        request.cookie_jar = ActionController::RequestForgeryProtection::ProtectionMethods::NullSession::NullCookieJar.build(request, {})
       end
 
       class ActionCacheFilter # :nodoc:
