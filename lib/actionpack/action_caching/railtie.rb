@@ -10,6 +10,8 @@ module ActionPack
         ActiveSupport.on_load(:action_view) do
           require "action_view/rendering_caching"
           ActionView::TemplateRenderer.send :prepend, ActionView::RenderingCaching
+          require "action_view/helpers/cache_helper_with_session_disabled"
+          ActionView::Helpers::CacheHelper.send :prepend, ActionView::Helpers::CacheHelperWithSessionDisabled
         end
       end
     end
